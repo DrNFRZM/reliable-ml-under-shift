@@ -17,3 +17,12 @@ jobs:
       - run: python -m pip install -e .
       - run: python -m unittest discover -s tests -v
       - run: shift-study smoke --config configs/smoke.json --output runs/ci-smoke
+      - run: python -m shiftstudy.cli evaluate --run results/reference
+      - run: python scripts/tree_diagnostic.py evaluate --run results/reference/tree-diagnostic
+      - name: Check numerical result files remain reproducible
+        run: >-
+          git diff --exit-code -- results/reference/metrics.csv
+          results/reference/summary.csv results/reference/paired_deltas.csv
+          results/reference/paired_summary.csv results/reference/per_class.csv
+          results/reference/calibration_bins.csv results/reference/risk_coverage.csv
+          results/reference/conformal_thresholds.csv results/reference/tree-diagnostic/metrics.csv
