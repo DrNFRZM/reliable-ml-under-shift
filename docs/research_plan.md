@@ -112,3 +112,16 @@ No GPU is required. Limits include one dataset/subset, a modest training budget,
 rare classes, dependent observations, fixed hyperparameters, and no novel method.
 MC Dropout, large searches, additional datasets, and a full benchmark run are
 outside this version.
+
+## Review diagnostic added after the primary run
+
+The fixed unregularized histogram-boosting baseline produced unusually
+confident mistakes and poor validation NLL. Its class alignment and probabilities
+were independently checked and reproduced. A separate diagnostic compares
+its unchanged L2=0 fit with a fixed L2=1 fit using identical training data,
+architecture/iteration budget, and conformal split. It records training and
+validation NLL before reporting evaluation metrics. No grid is searched and the
+original primary results are retained. Because this diagnostic was prompted
+after seeing primary evaluation outputs, it is explicitly **post-hoc** and cannot
+serve as pre-specified evidence of a method ranking. The primary MLP/temperature/
+ensemble comparisons are unchanged.
