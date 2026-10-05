@@ -247,4 +247,27 @@ def load_prepared(path):
         raise ValueError("Prepared data hash does not match metadata")
     with np.load(path / "data.npz", allow_pickle=False) as archive:
         arrays = {k: archive[k] for k in archive.files}
+    splits = ("train", "validation", "temperature", "conformal", "eval_in", "eval_out")
+    expected = {f"{s}_{suffix}" for s in splits for suffix in ("x", "y", "rows", "observation_keys")}
+    if set(arrays) != expected:
+        raise ValueError("Incomplete or unexpected prepared data arrays")
+    seen = set()
+    for split in splits:
+        x, y = arrays[f"{split}_x"], arrays[f"{split}_y"]
+        n = metadata["splits"][split]["n"]
+        if x.shape != (n, len(metadata["features"])) or np.isinf(x).any():
+            raise ValueError(f"Invalid features in {split}")
+        if (y.shape != (n,) or not np.issubdtype(y.dtype, np.integer)
+                or (y < 0).any() or (y >= len(metadata["classes"])).any()):
+            raise ValueError(f"Invalid labels in {split}")
+        keys = arrays[f"{split}_observation_keys"]
+        if keys.shape != (n, 3) or not np.isfinite(keys).all():
+            raise ValueError(f"Invalid observation keys in {split}")
+        unique = set(map(tuple, keys))
+        if len(unique) != n or seen & unique:
+            raise ValueError("Prepared splits contain overlapping observations")
+        seen.update(unique)
+        rows = arrays[f"{split}_rows"]
+        if rows.shape != (n,) or not np.issubdtype(rows.dtype, np.integer) or len(np.unique(rows)) != n:
+            raise ValueError(f"Invalid source row indices in {split}")
     return arrays, metadata
