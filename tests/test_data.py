@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from shiftstudy.data import (META, feature_columns, fit_preprocessor, integer_labels,
+from shiftstudy.data import (META, SPLITS, clean_observations, feature_columns, fit_preprocessor, integer_labels,
                              sample_csv, validate_observations)
 
 
@@ -62,6 +62,18 @@ class DataTests(unittest.TestCase):
         frame = pd.read_csv(io.BytesIO(csv_bytes(5)))
         with self.assertRaises(ValueError):
             validate_observations({"train": frame, "eval_in": frame})
+
+    def test_cleanup_is_disjoint_and_label_independent(self):
+        base = pd.read_csv(io.BytesIO(csv_bytes(20)))
+        base["source_row"] = np.arange(len(base))
+        frames = {s: base.iloc[i * 4:i * 4 + 6].copy() for i, s in enumerate(SPLITS)}
+        cleaned, audit = clean_observations(frames)
+        validate_observations(cleaned)
+        self.assertEqual(audit["removed_rows"]["dev_in"], 2)
+        frames["dev_in"]["fact_cwsm_class"] = 99
+        changed, _ = clean_observations(frames)
+        for s in SPLITS:
+            np.testing.assert_array_equal(cleaned[s].source_row, changed[s].source_row)
 
 
 if __name__ == "__main__":

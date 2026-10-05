@@ -22,12 +22,18 @@ are empirical questions; adverse and null results are retained.
   No dataset redistribution under the code license.
 - Target: `fact_cwsm_class`. Features exclude time, coordinates, climate, both
   targets, and any other `fact_` column. Never use observed temperature as input.
-- Sample 20,000 training rows, 6,000 `dev_in` rows, and 5,000 rows from each of
+- Sample 20,000 training candidate rows, 6,000 `dev_in` candidates, and 5,000 from each of
   `eval_in` and `eval_out`, without replacement using seeded random priorities
   over **every** row in each complete CSV. Preserve original row indices.
+- Data inspection before model fitting found repeated time/latitude/longitude
+  observation keys within and across the candidate splits. Keep only the first
+  source row for each key, with priority train, dev_in, eval_in, eval_out, ignoring
+  labels. Log removals and retain the resulting smaller sample sizes. Candidate
+  rows are uniform; the cleaned subset is not a uniform sample of unique stations
+  or observations. This change was made before looking at model results.
 - Remove synthetic training rows with absent climate or non-integer observation
   times; log their number. Fail on malformed labels rather than invent labels.
-- Divide sampled `dev_in` rows into three disjoint random groups of 2,000:
+- Divide cleaned `dev_in` rows into three disjoint random groups of nearly equal size:
   validation for stopping, temperature calibration, and conformal calibration.
   This partition is not label-stratified; calibration is not selected using labels.
   Do not tune on `dev_out` or either evaluation domain.
@@ -81,7 +87,7 @@ Evaluate frozen predictors separately on `eval_in` and `eval_out`:
   Calibration uses the separate conformal group after temperature fitting.
 
 Ordinary split-conformal coverage assumes exchangeability of calibration and
- test examples conditional on the fitted predictor. Weather dependence already
+test examples conditional on the fitted predictor. Weather dependence already
 limits that interpretation in-domain; under time/climate shift we report
 empirical coverage and make no distribution-free guarantee.
 

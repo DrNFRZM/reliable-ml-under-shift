@@ -148,14 +148,32 @@ def observation_keys(frame):
                     frame["fact_longitude"].astype(float)))
 
 
-def validate_observations(frames):
+def validate_observations(frames, *, require_unique=True):
     keys = {s: observation_keys(f) for s, f in frames.items()}
     within = {s: len(k) - len(set(k)) for s, k in keys.items()}
     cross = {f"{a}:{b}": len(set(keys[a]) & set(keys[b]))
              for a, b in combinations(keys, 2)}
-    if any(within.values()) or any(cross.values()):
+    if require_unique and (any(within.values()) or any(cross.values())):
         raise ValueError(f"Duplicate observation keys in selected data: {within}; {cross}")
     return {"within_split_duplicates": within, "cross_split_overlap": cross}
+
+
+def clean_observations(frames):
+    """Keep first source row, with fixed train/dev/eval priority; never inspect labels."""
+    before = validate_observations(frames, require_unique=False)
+    seen, cleaned, removed = set(), {}, {}
+    for split in SPLITS:
+        frame = frames[split].sort_values("source_row")
+        keep = []
+        for key in observation_keys(frame):
+            keep.append(key not in seen)
+            seen.add(key)
+        cleaned[split] = frame.loc[keep].reset_index(drop=True)
+        removed[split] = len(frame) - sum(keep)
+    after = validate_observations(cleaned)
+    return cleaned, {"policy": "first source row; train, dev_in, eval_in, eval_out priority",
+                     "candidate_audit": before, "removed_rows": removed,
+                     "retained_audit": after}
 
 
 def prepare_weather(source, output, config):
@@ -173,12 +191,12 @@ def prepare_weather(source, output, config):
     features = provenance["train"]["features"]
     if any(p["features"] != features for p in provenance.values()):
         raise ValueError("Feature schema differs across canonical splits")
-    overlap = validate_observations(frames)
+    frames, overlap = clean_observations(frames)
     classes = np.array(provenance["train"]["label_vocabulary"], dtype=np.int64)
     dev_order = np.random.default_rng(config["seed"] + 100).permutation(len(frames["dev_in"]))
-    if len(dev_order) % 3:
-        raise ValueError("dev_in size must be divisible by three")
-    val, temp, conformal = np.split(dev_order, 3)
+    if len(dev_order) < 3:
+        raise ValueError("Need at least three distinct development observations")
+    val, temp, conformal = np.array_split(dev_order, 3)
     dev = frames.pop("dev_in")
     for name, indices in zip(("validation", "temperature", "conformal"), (val, temp, conformal)):
         frames[name] = dev.iloc[indices].reset_index(drop=True)
@@ -193,6 +211,7 @@ def prepare_weather(source, output, config):
         arrays[f"{split}_x"] = x
         arrays[f"{split}_y"] = y
         arrays[f"{split}_rows"] = frame["source_row"].to_numpy(dtype=np.int64)
+        arrays[f"{split}_observation_keys"] = np.asarray(observation_keys(frame), dtype=np.float64)
         descriptions[split] = {
             "n": len(frame),
             "label_counts": {str(c): int((raw_y == c).sum()) for c in classes},
