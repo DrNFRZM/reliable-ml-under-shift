@@ -2,7 +2,9 @@
 
 A small research-software study of probability calibration, ensemble averaging,
 selective prediction, and conformal sets on Shifts Weather precipitation
-classification. Implementation is in progress; no experiment has been run yet.
+classification. Implementation is in progress. No canonical experiment evidence
+is currently committed; descriptions of an earlier local run cannot yet be
+verified. See the [recovery audit](docs/recovery_audit.md).
 
 The [initial audit](docs/audit.md) records the repository's starting state.
 The [experimental protocol](docs/research_plan.md) defines the comparisons,

@@ -1,6 +1,9 @@
 # Experimental protocol
 
-Protocol specified before running the experiments. This is a small empirical
+The existing configuration is frozen for the recovery experiment. The earlier
+session described local results, but its artifacts are absent from GitHub, so
+the original timing of analysis decisions cannot be independently verified.
+This is not a preregistered study. This is a small empirical
 study of existing methods, not a new uncertainty method or an official Shifts
 leaderboard reproduction. See [audit.md](audit.md) for the initial state.
 
@@ -113,11 +116,12 @@ rare classes, dependent observations, fixed hyperparameters, and no novel method
 MC Dropout, large searches, additional datasets, and a full benchmark run are
 outside this version.
 
-## Review diagnostic added after the primary run
+## Exploratory diagnostic inherited from the interrupted session
 
-The fixed unregularized histogram-boosting baseline produced unusually
-confident mistakes and poor validation NLL. Its class alignment and probabilities
-were independently checked and reproduced. A separate diagnostic compares
+The interrupted session described unusually confident mistakes and poor
+validation NLL from the fixed unregularized histogram-boosting baseline. Its
+claimed local checks are not recoverable evidence. The recovery will reproduce
+the unchanged primary baseline and retain a separate diagnostic comparing
 its unchanged L2=0 fit with a fixed L2=1 fit using identical training data,
 architecture/iteration budget, and conformal split. It records training and
 validation NLL before reporting evaluation metrics. No grid is searched and the
