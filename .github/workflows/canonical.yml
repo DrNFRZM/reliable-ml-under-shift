@@ -1,0 +1,59 @@
+name: Canonical Weather reference
+on:
+  push:
+    branches: [research-completion]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: canonical-weather-reference
+  cancel-in-progress: false
+jobs:
+  reference:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[canonical-run]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PYTHONUNBUFFERED: '1'
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install recorded environment
+        run: python -m pip install -r requirements-lock.txt -e .
+      - name: Unit and integration checks
+        run: python -m unittest discover -s tests -v
+      - name: Download official canonical archive
+        run: |
+          mkdir -p data
+          df -h .
+          curl --fail --location --retry 2 --connect-timeout 30 --max-time 1200 \
+            --speed-limit 100000 --speed-time 60 \
+            https://storage.yandexcloud.net/yandex-research/shifts/weather/canonical-partitioned-dataset.tar \
+            --output data/canonical-partitioned-dataset.tar
+      - name: Prepare complete-CSV deterministic samples
+        run: >-
+          python -m shiftstudy.cli prepare
+          --source data/canonical-partitioned-dataset.tar
+          --config configs/weather.json --output data/weather-prepared
+      - name: Run unchanged primary configuration
+        run: >-
+          python -m shiftstudy.cli run --data data/weather-prepared
+          --config configs/weather.json --output results/reference
+      - name: Reproduce inherited exploratory diagnostic
+        run: >-
+          python scripts/tree_diagnostic.py run --data data/weather-prepared
+          --reference results/reference --output results/reference/tree-diagnostic
+      - name: Preserve compact evidence, including partial progress on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canonical-reference-${{ github.sha }}
+          path: results/reference/
+          if-no-files-found: warn
+          retention-days: 14

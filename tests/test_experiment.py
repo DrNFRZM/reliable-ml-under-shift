@@ -36,6 +36,11 @@ class ExperimentTests(unittest.TestCase):
             metadata = prepare_synthetic(path / "data", cfg["preparation"])
             self.assertEqual(metadata["kind"], "synthetic_smoke")
             run_experiment(path / "data", path / "run_a", cfg)
+            with np.load(path / "run_a/selection.npz", allow_pickle=False) as selected:
+                with np.load(path / "data/data.npz", allow_pickle=False) as prepared:
+                    for split in ("train", "validation", "temperature", "conformal", "eval_in", "eval_out"):
+                        for suffix in ("rows", "observation_keys", "y"):
+                            np.testing.assert_array_equal(selected[f"{split}_{suffix}"], prepared[f"{split}_{suffix}"])
             original = pd.read_csv(path / "run_a/metrics.csv")
             recomputed = evaluate_saved(path / "run_a")
             pd.testing.assert_frame_equal(original, recomputed, check_exact=False, rtol=1e-14)

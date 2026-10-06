@@ -5,6 +5,7 @@ from pathlib import Path
 import hashlib
 import importlib.metadata
 import json
+import os
 import platform
 import subprocess
 
@@ -57,6 +58,11 @@ def run_experiment(data_path, output, config):
     write_json(output / "data_metadata.json", metadata)
     splits = ("train", "validation", *PREDICTION_SPLITS)
     n_classes = len(metadata["classes"])
+    # Compact membership evidence, including training and stopping rows. Features
+    # remain in the ignored prepared dataset; no raw weather CSV is redistributed.
+    np.savez_compressed(output / "selection.npz", **{
+        f"{s}_{suffix}": arrays[f"{s}_{suffix}"]
+        for s in splits for suffix in ("rows", "observation_keys", "y")})
     with threadpool_limits(config["threads"]):
         preprocessor = fit_preprocessor(arrays["train_x"])
         x = {s: preprocessor.transform(arrays[f"{s}_x"]) for s in splits}
@@ -105,6 +111,11 @@ def run_experiment(data_path, output, config):
             write_json(output / "training.json", diagnostics)
     versions = {name: importlib.metadata.version(name) for name in
                 ("numpy", "scipy", "scikit-learn", "pandas", "matplotlib", "threadpoolctl")}
+    lock = Path(__file__).resolve().parents[2] / "requirements-lock.txt"
+    if lock.is_file():
+        (output / "requirements-lock.txt").write_bytes(lock.read_bytes())
+        versions.update({line.split("==")[0]: importlib.metadata.version(line.split("==")[0])
+                         for line in lock.read_text().splitlines() if "==" in line and not line.startswith("#")})
     if source_provenance()["package_sha256"] != source_at_start["package_sha256"]:
         raise RuntimeError("Package changed during training; run cannot be marked complete")
     write_json(output / "manifest.json", {
@@ -112,11 +123,16 @@ def run_experiment(data_path, output, config):
         "dataset_kind": metadata["kind"], "source": source_at_start,
         "python": platform.python_version(), "platform": platform.platform(),
         "versions": versions, "threads": config["threads"],
+        "runner": {"machine": platform.machine(), "logical_cpus": os.cpu_count(),
+                   "github_repository": os.environ.get("GITHUB_REPOSITORY"),
+                   "github_run_id": os.environ.get("GITHUB_RUN_ID"),
+                   "github_sha": os.environ.get("GITHUB_SHA")},
         "prediction_dtype": "float32; metrics recomputed in float64",
         "baseline_fits": 2, "neural_fits": len(config["seeds"]) * config["ensemble_size"],
         "prediction_hashes": {p.name: sha256_file(p) for p in sorted(output.glob("seed_*.npz"))},
         "artifact_hashes": {name: sha256_file(output / name) for name in
-                            ("config.json", "data_metadata.json", "training.json", "preprocessing.npz")},
+                            ("config.json", "data_metadata.json", "training.json", "preprocessing.npz", "selection.npz")
+                            + (("requirements-lock.txt",) if lock.is_file() else ())},
     })
     evaluate_saved(output)
     return output
