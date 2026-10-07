@@ -32,7 +32,7 @@ def evaluate(output):
                 rows.append({"variant": variant, "domain": domain,
                              **prediction_metrics(p, y), **set_metrics(conformal_sets(p, q), y)})
     result = pd.DataFrame(rows)
-    result.to_csv(output / "metrics.csv", index=False)
+    result.to_csv(output / "metrics.csv", index=False, lineterminator="\n")
     return result
 
 

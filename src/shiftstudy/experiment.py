@@ -20,13 +20,17 @@ from .data import fit_preprocessor, load_prepared, sha256_file
 from .metrics import calibration_bins, per_class_metrics, prediction_metrics, risk_coverage
 from .models import aligned_probabilities, member_seed, train_baselines, train_mlp
 
-METHODS = ("prior", "logistic", "hist_boost", "mlp", "mlp_temperature",
-           "ensemble", "ensemble_temperature")
+# Fitted once with no optimisation seed; every seed file holds the same copy.
+FIXED_METHODS = ("prior", "logistic", "hist_boost")
+SEEDED_METHODS = ("mlp", "mlp_temperature", "ensemble", "ensemble_temperature")
+METHODS = FIXED_METHODS + SEEDED_METHODS
 PREDICTION_SPLITS = ("temperature", "conformal", "eval_in", "eval_out")
 
 
 def write_json(path, value):
-    Path(path).write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
+    # Fixed encoding and newline: these files are hashed, also on Windows.
+    Path(path).write_text(json.dumps(value, indent=2, allow_nan=False) + "\n",
+                          encoding="utf-8", newline="\n")
 
 
 def source_provenance():
@@ -149,6 +153,7 @@ def evaluate_saved(run_path):
     metadata = json.loads((run_path / "data_metadata.json").read_text())
     diagnostics = json.loads((run_path / "training.json").read_text())
     rows, per_class, calibration, curves, thresholds = [], [], [], [], []
+    fixed = None
     for seed in config["seeds"]:
         name = f"seed_{seed}.npz"
         if sha256_file(run_path / name) != manifest["prediction_hashes"][name]:
@@ -160,7 +165,17 @@ def evaluate_saved(run_path):
                 expected = saved[f"members__{split}"].mean(axis=0, dtype=np.float64).astype(np.float32)
                 if not np.array_equal(expected, saved[f"ensemble__{split}"]):
                     raise ValueError("Ensemble differs from saved member mean")
-            for method in METHODS:
+            copies = {f"{m}__{s}": saved[f"{m}__{s}"] for m in FIXED_METHODS for s in PREDICTION_SPLITS}
+            if fixed is None:
+                fixed, methods = copies, METHODS
+            else:
+                # The baselines are one fit, so they are evaluated once (seed left
+                # blank) instead of being counted as one replicate per outer seed.
+                if any(not np.array_equal(fixed[k], copies[k]) for k in fixed):
+                    raise ValueError("Baseline predictions differ between seed files")
+                methods = SEEDED_METHODS
+            for method in methods:
+                fit_id = None if method in FIXED_METHODS else seed
                 if method.endswith("_temperature"):
                     base = method.removesuffix("_temperature")
                     temperature = diagnostics["seeds"][str(seed)]["temperature_fits"][base]["temperature"]
@@ -170,11 +185,11 @@ def evaluate_saved(run_path):
                             raise ValueError("Scaled probabilities disagree with saved temperature")
                 q = conformal_threshold(saved[f"{method}__conformal"],
                                         saved["labels__conformal"], config["alpha"])
-                thresholds.append({"seed": seed, "method": method, "threshold": q})
+                thresholds.append({"seed": fit_id, "method": method, "threshold": q})
                 for domain in ("eval_in", "eval_out"):
                     p, y = saved[f"{method}__{domain}"], saved[f"labels__{domain}"]
                     sets = conformal_sets(p, q)
-                    group = {"seed": seed, "method": method, "domain": domain}
+                    group = {"seed": fit_id, "method": method, "domain": domain}
                     rows.append({**group, **prediction_metrics(p, y), **set_metrics(sets, y)})
                     for item in per_class_metrics(p, y, sets):
                         item["class_label"] = metadata["classes"][item["class_index"]]
@@ -188,27 +203,41 @@ def evaluate_saved(run_path):
                     for i in indices:
                         curves.append({**group, **{k: c[k][i] for k in
                             ("coverage", "risk", "random_risk", "oracle_risk")}})
-    metrics = pd.DataFrame(rows)
-    metrics.to_csv(run_path / "metrics.csv", index=False)
+    def save(values, name):
+        frame = pd.DataFrame(values)
+        if "seed" in frame:
+            frame["seed"] = frame["seed"].astype("Int64")  # blank for the single-fit baselines
+        frame.to_csv(run_path / f"{name}.csv", index=False, lineterminator="\n")
+        return frame
+
+    metrics = save(rows, "metrics")
     for name, values in (("per_class", per_class), ("calibration_bins", calibration),
                          ("risk_coverage", curves), ("conformal_thresholds", thresholds)):
-        pd.DataFrame(values).to_csv(run_path / f"{name}.csv", index=False)
+        save(values, name)
     columns = [c for c in metrics.columns if c not in ("seed", "method", "domain")]
+    # count is the number of fits: 1 for the baselines (their SD is undefined and
+    # left blank) and the number of outer seeds for the MLP-based predictors.
     summary = metrics.groupby(["method", "domain"])[columns].agg(["mean", "std", "count"])
     summary.columns = [f"{metric}_{stat}" for metric, stat in summary.columns]
-    summary.reset_index().to_csv(run_path / "summary.csv", index=False)
+    save(summary.reset_index(), "summary")
     contrasts = (("mlp_temperature", "mlp"), ("ensemble", "mlp"),
                  ("ensemble_temperature", "ensemble"), ("hist_boost", "mlp"))
     deltas = []
     for target, reference in contrasts:
-        a = metrics[metrics.method == target].set_index(["seed", "domain"])[columns]
         b = metrics[metrics.method == reference].set_index(["seed", "domain"])[columns]
+        a = metrics[metrics.method == target]
+        if target in FIXED_METHODS:
+            # One baseline fit against each seed of the reference: the spread of
+            # these differences comes from the reference alone.
+            a = a.set_index("domain")[columns].loc[b.index.get_level_values("domain")].set_axis(b.index)
+        else:
+            a = a.set_index(["seed", "domain"])[columns]
         diff = (a - b).reset_index()
         diff["comparison"] = f"{target} minus {reference}"
         deltas.append(diff)
     paired = pd.concat(deltas, ignore_index=True)
-    paired.to_csv(run_path / "paired_deltas.csv", index=False)
+    save(paired, "paired_deltas")
     paired_summary = paired.groupby(["comparison", "domain"])[columns].agg(["mean", "std"])
     paired_summary.columns = [f"{metric}_{stat}" for metric, stat in paired_summary.columns]
-    paired_summary.reset_index().to_csv(run_path / "paired_summary.csv", index=False)
+    save(paired_summary.reset_index(), "paired_summary")
     return metrics

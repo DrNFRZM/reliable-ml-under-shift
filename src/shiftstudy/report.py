@@ -8,7 +8,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from .experiment import METHODS
+from .experiment import FIXED_METHODS, METHODS
 
 
 def generate_report(run_path):
@@ -54,15 +54,18 @@ def generate_report(run_path):
     fields = ("accuracy", "macro_f1", "nll", "ece_15", "aurc", "set_coverage", "set_size")
     for domain in ("eval_in", "eval_out"):
         lines += ["", f"## {domain}", "",
-                  "Mean ± sample SD across optimization seeds, conditional on this one data subset.", "",
+                  "MLP-based rows: mean ± sample SD over the outer optimization seeds, conditional on this one data subset.",
+                  "Prior, logistic and hist_boost rows: one fit each, so a single value and no SD.", "",
                   "| Predictor | Accuracy | Macro F1 | NLL | ECE 15 | AURC | Set coverage | Set size |",
                   "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
         for name in METHODS:
             row = summary[(summary.method == name) & (summary.domain == domain)].iloc[0]
-            values = [f"{row[f'{field}_mean']:.4f} ± {row[f'{field}_std']:.4f}" for field in fields]
+            values = [f"{row[f'{field}_mean']:.4f}" if name in FIXED_METHODS else
+                      f"{row[f'{field}_mean']:.4f} ± {row[f'{field}_std']:.4f}" for field in fields]
             lines.append(f"| {name} | " + " | ".join(values) + " |")
     lines += ["", "## Paired NLL changes", "",
-              "Negative means lower NLL for the first method. These are descriptive seed differences, not significance tests.", "",
+              "Negative means lower NLL for the first method. These are descriptive seed differences, not significance tests.",
+              "hist_boost is a single fit, so the SD of its contrast reflects MLP seed variation only.", "",
               "| Contrast | Domain | NLL change ± sample SD |", "| --- | --- | ---: |"]
     for _, row in pairs.iterrows():
         lines.append(f"| {row.comparison} | {row.domain} | {row.nll_mean:+.4f} ± {row.nll_std:.4f} |")
@@ -78,7 +81,7 @@ def generate_report(run_path):
               f"Recorded fitting warnings: {len(warnings)}."]
     lines += [f"- {name}: {message}" for name, message in warnings]
     lines += ["", "## Interpretation limits", "",
-              "- Prior/logistic/tree predictions are reused for each outer seed; their zero SD is not a confidence statement.",
+              "- Prior, logistic and tree baselines were each fitted once. They carry no seed-to-seed SD, which says nothing about how stable they would be under a different data subset.",
               "- Calibration set coverage targets 0.9 marginally under exchangeability; weather dependence and domain shift prevent an unconditional coverage guarantee here.",
               "- Coverage can conceal failures for rare classes. Some class/domain cells have few or no examples; inspect per_class.csv, which leaves unsupported recall/coverage blank.",
               "- Macro F1 uses the fixed full-training vocabulary, including classes absent from an evaluation sample (zero contribution).",
@@ -91,9 +94,10 @@ def generate_report(run_path):
               "![Selective risk averaged across outer seeds](risk_coverage.png)", "",
               "## Re-evaluation", "",
               "Run `shift-study evaluate --run <this-directory>` to verify prediction hashes, ensemble averaging, temperature transforms, and recompute metrics/figures without training.",
+              "The commit above is the code that trained the models and saved the predictions; the tables are what the currently installed evaluator computes from them.",
               "Full metric values are in metrics.csv and summary.csv; paired_deltas.csv preserves each outer-seed difference.",
               "risk_coverage.csv contains 101 display points per curve; AURC uses every retained count, reconstructible from the NPZ probabilities.", ""]
-    (run_path / "report.md").write_text("\n".join(lines))
+    (run_path / "report.md").write_text("\n".join(lines), encoding="utf-8", newline="\n")
     plot_results(run_path, config["seeds"][0])
     return run_path / "report.md"
 
@@ -106,7 +110,7 @@ def plot_results(run_path, first_seed):
     for ax, domain in zip(axes, ("eval_in", "eval_out")):
         ax.plot([0, 1], [0, 1], "k--", linewidth=1, label="ideal reference")
         for name in shown:
-            data = calibration[(calibration.seed == first_seed) & (calibration.domain == domain)
+            data = calibration[((calibration.seed == first_seed) | calibration.seed.isna()) & (calibration.domain == domain)
                                & (calibration.method == name) & (calibration['count'] > 0)]
             ax.plot(data.confidence, data.accuracy, marker=".", label=name, linewidth=1)
         ax.set(xlim=(0, 1), ylim=(0, 1), xlabel="Mean predicted confidence",
