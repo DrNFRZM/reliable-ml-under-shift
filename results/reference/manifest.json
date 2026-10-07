@@ -1,0 +1,69 @@
+{
+  "completed_at_utc": "2026-10-06T09:25:29.481095+00:00",
+  "dataset_kind": "shifts_weather",
+  "source": {
+    "git_commit": "a6228dd203d60a168f8e11275a69f50811a5c26a",
+    "git_dirty": false,
+    "package_files": {
+      "__init__.py": "e28f42fb55826e4920e3858311f0aa20404e030caf3629e0231d919cd936707f",
+      "calibration.py": "7b0de5e5254b08d1a69fd623d75ceadcc5a1e83d07f04aace0064efce674b309",
+      "cli.py": "e2d71afb71e2ca3a8b2a4e890b75045eaec61858df12d631a06561c4b76ba481",
+      "config.py": "9576d6c8476cd0d9daf11951a12d24d83afef8b811d59bbe0b1d5bdf5a33d53b",
+      "data.py": "f1c72a3de8d7eb7d756114992e477113001af47ee5ec2b6621a5d30829fa4693",
+      "experiment.py": "03ddb865fa5f79dd86d788422dc2eb1db8f34657491cf4048b6acd0173adeb85",
+      "metrics.py": "5449002f2f533770373c6b69bc44acc65bed9f759a9bf043b14eb006d4651477",
+      "models.py": "47cdd611d5ea93e9801f1d57a355a29fbf467328bb2d8a495c674c2fcd62cecb",
+      "report.py": "975e53692b27de99390dc9d3fc5d3ff412753b94399ccf19ea8b9d69ae51bfe4"
+    },
+    "package_sha256": "a59841cca859e83caaa01746094014271cd327053420edde4ec6b181eac1c6d9"
+  },
+  "python": "3.12.14",
+  "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "versions": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "scikit-learn": "1.8.0",
+    "pandas": "2.2.3",
+    "matplotlib": "3.10.8",
+    "threadpoolctl": "3.6.0",
+    "joblib": "1.5.3",
+    "python-dateutil": "2.9.0.post0",
+    "pytz": "2026.3.post1",
+    "tzdata": "2026.4",
+    "six": "1.17.0",
+    "contourpy": "1.3.3",
+    "cycler": "0.12.1",
+    "fonttools": "4.61.1",
+    "kiwisolver": "1.4.9",
+    "packaging": "26.3",
+    "pillow": "12.3.0",
+    "pyparsing": "3.3.2",
+    "setuptools": "84.0.0"
+  },
+  "threads": 1,
+  "runner": {
+    "machine": "x86_64",
+    "logical_cpus": 4,
+    "github_repository": "DrNFRZM/reliable-ml-under-shift",
+    "github_run_id": "37442161270",
+    "github_sha": "a6228dd203d60a168f8e11275a69f50811a5c26a"
+  },
+  "prediction_dtype": "float32; metrics recomputed in float64",
+  "baseline_fits": 2,
+  "neural_fits": 15,
+  "prediction_hashes": {
+    "seed_0.npz": "e587472d1c97421b6ac47fab9739088ea5aac067b1d456206379029c58a3da42",
+    "seed_1.npz": "3040ace532b395cb501dcb1f9ba4034848b0376fa84660b96f60c5178615b89d",
+    "seed_2.npz": "50c3464892c03b46884b4791feba1625564b5fd47a228087af75e1923cc6ebd6",
+    "seed_3.npz": "22aa5f2ba73754e62b73bb49d105339114e98bdf0f69bde64a143dbf735c34d2",
+    "seed_4.npz": "6a18d8027d83f879813a9f70f731baf2c78363d3675b195ec32acf02a16590f5"
+  },
+  "artifact_hashes": {
+    "config.json": "de7be1f8542a25eb0b7f9284ec686cb18e79423df315ca5b1b968819d68f2ca9",
+    "data_metadata.json": "ff59898943563b50ef386176e642a54f9d124502d229aa1ee3a86a0095eabae8",
+    "training.json": "a42c984b9159a8c57a3e6a579e59cc864dfdf49db7da786e5c7e889485778645",
+    "preprocessing.npz": "f1797f20adfcf91615666776a8462edb2cca10f7b4b4937636866cfcdc74a017",
+    "selection.npz": "4f7e24d4bd26a88149c674c2fd8579e72d0a9840053665fac6c400250ac085ea",
+    "requirements-lock.txt": "801c933a88d37ba4c22ea03125cfe1d9a8795be355aaa051e0e5da6a4b12190e"
+  }
+}
