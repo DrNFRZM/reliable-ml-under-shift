@@ -6,6 +6,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ['3.11', '3.12']
     steps:
@@ -14,15 +15,26 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-      - run: python -m pip install -e .
+      - run: python -m pip install -r requirements-lock.txt -e .
       - run: python -m unittest discover -s tests -v
-      - run: shift-study smoke --config configs/smoke.json --output runs/ci-smoke
-      - run: python -m shiftstudy.cli evaluate --run results/reference
-      - run: python scripts/tree_diagnostic.py evaluate --run results/reference/tree-diagnostic
-      - name: Check numerical result files remain reproducible
-        run: >-
-          git diff --exit-code -- results/reference/metrics.csv
-          results/reference/summary.csv results/reference/paired_deltas.csv
-          results/reference/paired_summary.csv results/reference/per_class.csv
-          results/reference/calibration_bins.csv results/reference/risk_coverage.csv
-          results/reference/conformal_thresholds.csv results/reference/tree-diagnostic/metrics.csv
+      - name: Synthetic end-to-end run (plumbing only, not a result)
+        run: |
+          shift-study smoke --config configs/smoke.json --output runs/ci-smoke
+          python scripts/verify_reference.py runs/ci-smoke/experiment
+      - name: Recompute the committed reference tables without the package's metric code
+        run: python scripts/verify_reference.py results/reference
+      - name: Re-evaluate the committed reference run with the package
+        run: |
+          python -m shiftstudy.cli evaluate --run results/reference
+          python scripts/tree_diagnostic.py evaluate --run results/reference/tree-diagnostic
+      - name: Nothing tracked changed and nothing new appeared
+        # The two PNG figures are redrawn by the step above and are not
+        # byte-stable across platforms, so they are left out of this check.
+        run: |
+          changes="$(git status --porcelain --untracked-files=all -- . ':(exclude)results/reference/*.png')"
+          if [ -n "$changes" ]; then
+            echo "Unexpected changes after re-evaluation:"
+            echo "$changes"
+            git diff --stat
+            exit 1
+          fi
