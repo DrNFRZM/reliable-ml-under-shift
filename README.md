@@ -199,8 +199,8 @@ behaviour but is not evidence for ranking boosting against the MLPs.
 - Temperature scaling works on `log p` of the averaged ensemble probabilities,
   not on per-member logits.
 - The reference run happened once, on a GitHub-hosted runner. Re-evaluating
-  the saved predictions is byte-reproducible; retraining on other hardware is
-  not expected to be bit-identical.
+  the saved predictions reproduces the tables byte for byte; retraining on
+  other hardware is not expected to be bit-identical.
 
 ## Reproducing
 
