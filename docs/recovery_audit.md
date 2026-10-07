@@ -1,6 +1,9 @@
-# Recovery audit, 6 October 2026
+# Recovery audit
 
-Snapshot inspected before recovery changes:
+The first part was written on 6 October 2026, before the reference run, and is
+kept as written. The last section records what happened afterwards.
+
+## Snapshot inspected before recovery changes (6 October 2026)
 
 - `main`: `79ec49fe1cf68068b89e03ec853f1f5ca561fd5c` (early scaffold).
 - `research-completion`: `164880be9cb6d115bae7c2e4b8fc818e978b1de9`, seven commits ahead, no PR.
@@ -51,3 +54,42 @@ GitHub Actions recovery job can download the official archive, execute the froze
 protocol and preserve compact artifacts for local independent verification. Raw
 data will remain outside Git. An unsuccessful download/run must not be presented
 as a completed canonical experiment.
+
+## Outcome (7 October 2026)
+
+The recovery job ran once, as [Actions run 37442161270](https://github.com/DrNFRZM/reliable-ml-under-shift/actions/runs/37442161270)
+at commit `a6228dd`, and finished without errors. Its artifact was downloaded,
+checked and committed under `results/reference/`; see
+[../results/README.md](../results/README.md) for hashes and file roles.
+
+Status of the four gaps listed above:
+
+1. Done. The run stores predictions, labels, row indices and observation keys
+   for all six splits, the configuration, training diagnostics and data/source
+   hashes. The manifest names commit `a6228dd` with a clean working tree, and
+   the package hashes in it equal the files at that commit.
+2. Done. `scripts/verify_reference.py` recomputes every table from the saved
+   probabilities without importing the package; the largest difference from
+   the stored values is below 1e-15. It also checks that the single MLP is
+   ensemble member 0, that the ensemble is the member mean, and that the
+   stored temperatures are reproduced by an independent fit. The baselines
+   were being counted once per outer seed (count 5, SD 0); they are now
+   evaluated and reported once.
+3. Done. CI runs the verification script and the package evaluator on the
+   committed files and fails if any tracked file changes or an untracked file
+   appears.
+4. Done. The README tables are generated from the committed files. The
+   boosting diagnostic is labelled post-hoc everywhere it appears.
+
+Things that remain true and are not fixed:
+
+- The results an earlier session described were never recovered. Nothing in
+  this repository depends on them, and whether the configuration was chosen
+  before or after that session saw results cannot be established.
+- The reference run was executed once. The saved predictions are re-evaluated
+  on every CI run, but the training itself has not been repeated on a second
+  machine.
+- The diagnostic's manifest says `git_dirty: true`. The cause was the untracked
+  `results/reference/` directory written by the previous workflow step, not a
+  source change (the recorded script hash matches the committed script). The
+  manifest is left as produced.

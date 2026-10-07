@@ -27,6 +27,8 @@ jobs:
         run: |
           python -m shiftstudy.cli evaluate --run results/reference
           python scripts/tree_diagnostic.py evaluate --run results/reference/tree-diagnostic
+      - name: README tables are the ones generated from the reference run
+        run: python scripts/readme_tables.py --check
       - name: Nothing tracked changed and nothing new appeared
         # The two PNG figures are redrawn by the step above and are not
         # byte-stable across platforms, so they are left out of this check.

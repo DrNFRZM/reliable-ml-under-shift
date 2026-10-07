@@ -1,6 +1,6 @@
 # Experimental protocol
 
-The existing configuration is frozen for the recovery experiment. The earlier
+The configuration was frozen before the reference run. An earlier
 session described local results, but its artifacts are absent from GitHub, so
 the original timing of analysis decisions cannot be independently verified.
 This is not a preregistered study. This is a small empirical
@@ -64,8 +64,9 @@ unseen stations. Audit exact observation-key overlap in the selected splits.
 7. Temperature scaling of ensemble probabilities, isolating calibration from averaging.
 
 MLPs use at most 80 epochs, keep the lowest validation-NLL checkpoint, and stop
-following 10 epochs without improvement of at least 0.0001. The two non-neural
-fitted baselines are trained once and reused; repeating them does not create
+following 10 epochs without improvement of at least 0.0001. The prior and the two
+non-neural fitted baselines are trained once. They are reported as single fits
+with no standard deviation; copying them into each seed's output does not create
 independent evidence. No architecture or hyperparameter search is performed.
 
 Repeat MLP training for five outer seeds (0–4). Each ensemble has three distinct
@@ -94,7 +95,8 @@ test examples conditional on the fitted predictor. Weather dependence already
 limits that interpretation in-domain; under time/climate shift we report
 empirical coverage and make no distribution-free guarantee.
 
-Report mean and **sample** SD over optimization seeds and paired method deltas.
+Report mean and **sample** SD over optimization seeds and paired method deltas
+for the MLP-based predictors.
 These describe training variability conditional on one fixed subset; they are
 not confidence intervals over weather stations, data draws, or future domains.
 Do not count ensemble members as additional experiment replications.
@@ -120,8 +122,8 @@ outside this version.
 
 The interrupted session described unusually confident mistakes and poor
 validation NLL from the fixed unregularized histogram-boosting baseline. Its
-claimed local checks are not recoverable evidence. The recovery will reproduce
-the unchanged primary baseline and retain a separate diagnostic comparing
+claimed local checks are not recoverable evidence. The reference run keeps
+the unchanged primary baseline and adds a separate diagnostic comparing
 its unchanged L2=0 fit with a fixed L2=1 fit using identical training data,
 architecture/iteration budget, and conformal split. It records training and
 validation NLL before reporting evaluation metrics. No grid is searched and the
@@ -129,3 +131,12 @@ original primary results are retained. Because this diagnostic was prompted
 after seeing primary evaluation outputs, it is explicitly **post-hoc** and cannot
 serve as pre-specified evidence of a method ranking. The primary MLP/temperature/
 ensemble comparisons are unchanged.
+
+## Status
+
+The protocol above was run once on the canonical data (Actions run 37442161270,
+commit `a6228dd`). Outputs and their verification are described in
+[../results/README.md](../results/README.md) and
+[recovery_audit.md](recovery_audit.md). One reporting change was made after that
+run, without touching the predictions: the baselines are now summarised as one
+fit each instead of once per outer seed.
