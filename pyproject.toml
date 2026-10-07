@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reliable-ml-under-shift"
+version = "0.1.0"
+description = "A small reproducible calibration study on Shifts Weather"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "Farzam Nikbakhsh Jorshari"}]
+dependencies = [
+  "numpy==2.3.5", "scipy==1.17.0", "scikit-learn==1.8.0",
+  "pandas==2.2.3", "matplotlib==3.10.8", "threadpoolctl==3.6.0"
+]
+
+[project.scripts]
+shift-study = "shiftstudy.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

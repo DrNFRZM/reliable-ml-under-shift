@@ -218,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local upstream data and unreviewed experiment runs
+/data/
+/runs/
