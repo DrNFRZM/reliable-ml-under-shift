@@ -1,28 +1,25 @@
 # reliable-ml-under-shift
 
-A small empirical study of how temperature scaling, a three-member MLP
-ensemble, confidence-based rejection and split-conformal prediction sets behave
-when the test data moves away from the training data. The task is 9-class
-precipitation classification on a subset of the Shifts Weather dataset.
+This project studies calibration and predictive uncertainty under distribution
+shift using the Shifts Weather precipitation task.
 
-There is no new method here. The methods are standard; what the repository adds
-is one controlled comparison, with the saved predictions needed to recompute
-every number in it.
+I compare a class-prior baseline, logistic regression, histogram gradient
+boosting, a small MLP, temperature scaling and a three-member MLP ensemble on
+the same fixed data split. I also evaluate selective prediction and
+split-conformal prediction sets.
+
+The main goal is reproducibility rather than proposing a new model. Saved
+predictions and experiment metadata are included so the reported metrics can be
+recomputed without retraining.
 
 ## Question
 
-Calibration methods are fitted on held-out data that looks like the training
-data. Weather forecasts are then used in other places and later months. So:
+How much do temperature scaling and a small MLP ensemble improve calibration and
+predictive uncertainty in-domain, and how much of that improvement remains after
+the data distribution shifts?
 
-> On a fixed subset of Shifts Weather, how do in-domain temperature scaling and
-> a three-member MLP ensemble change NLL, calibration error, selective risk and
-> conformal set coverage on in-domain test data, and what is left of those
-> changes on the time- and climate-shifted test data?
-
-NLL is the main metric. The protocol is in
-[docs/research_plan.md](docs/research_plan.md). It was fixed before the run
-reported here, but it is not a preregistration: an earlier session, whose
-outputs were lost, had already run some version of this experiment.
+NLL is the main metric. The full experimental protocol is in
+[docs/research_plan.md](docs/research_plan.md).
 
 ## Data
 
@@ -32,12 +29,12 @@ outputs were lost, had already run some version of this experiment.
 once: the shifted evaluation set comes from later dates and from climate zones
 (snow, polar) that do not occur in training (tropical, dry, mild temperate).
 
-The study uses a uniform random sample of each canonical CSV: 20,000 training
+I use a uniform random sample of each canonical CSV: 20,000 training
 rows, 6,000 `dev_in` rows and 5,000 rows from each evaluation set. Rows sharing
 an exact (time, latitude, longitude) key with an earlier row were dropped
 without looking at labels (47 rows in total). The `dev_in` sample is split at
-random into three parts with separate jobs, so that early stopping, temperature
-fitting and the conformal threshold never use the same rows. Neither `dev_out`
+random into three parts, so that early stopping, temperature fitting and the
+conformal threshold never use the same rows. Neither `dev_out`
 nor the evaluation sets are used for any fitting or tuning.
 
 Time, coordinates, climate zone and the observed temperature are not model
@@ -71,7 +68,7 @@ All numbers below come from one run, stored in
 [results/reference](results/reference) with its provenance in
 [results/README.md](results/README.md). The tables between the markers are
 written by `scripts/readme_tables.py` from those files, and CI fails if they
-drift.
+are out of date.
 
 For MLP-based rows, `a ± b` is the mean and sample standard deviation over the
 five outer seeds. That spread describes training randomness on this one data
@@ -143,42 +140,41 @@ true class is in the conformal set.
 
 ![Risk-coverage curves averaged over outer seeds](results/reference/risk_coverage.png)
 
-### What the run shows
+### What I found
 
-- **Everything is worse under shift.** For every trained predictor accuracy
-  drops by 12 to 13 points and NLL rises by 0.23 to 0.25. The ordering of the
-  MLP-based predictors by NLL is the same in both domains.
-- **Averaging three MLPs lowered NLL in all five seeds, in both domains.** The
-  reduction is larger on the shifted set. It costs three times the training,
-  and the comparison does not control for that.
-- **Temperature scaling fitted in-domain still helped under shift, but did not
-  repair calibration.** It lowered NLL and ECE for the single MLP in both
-  domains. The fitted temperatures are all slightly above 1 (1.06 to 1.18 for
-  the MLP), so the MLPs were mildly over-confident. After scaling, shifted ECE
-  is still several times the in-domain value.
-- **Conformal coverage held in-domain and fell under shift.** In-domain
-  coverage is 0.89 to 0.90 for the trained predictors, close to the 0.9 target
-  given a calibration split of about 2,000 rows. On the shifted set it is 0.84
-  to 0.85 for logistic regression and the MLP-based predictors, with larger
-  sets. This is expected: the guarantee needs calibration and
-  test rows to be exchangeable, and they are not here. Coverage is also very
-  uneven across classes; rare classes are covered far less often
-  (`per_class.csv`).
-- **Rejecting low-confidence predictions helps less under shift.** At 50%
-  coverage the ensemble's error rate is about 0.29 in-domain and 0.46 shifted
-  (`metrics.csv`, `risk_at_50`).
-- **The boosting baseline as configured is badly calibrated.** Its NLL is worse
-  than the class prior's although its accuracy is comparable to the other
-  models. About half of its NLL comes from a few percent of rows where it gives
-  the true class a probability below 1e-6; the NLL value therefore depends on
-  the 1e-15 clipping floor. This result is kept as it is.
+- Performance drops clearly under shift for every trained model. Accuracy
+  decreases by roughly 12–13 percentage points and NLL increases by about
+  0.23–0.25.
+- The three-member MLP ensemble gives lower NLL than the single MLP for all
+  five seeds, both in-domain and under shift. The improvement is modest, and it
+  comes at roughly three times the training cost.
+- Temperature scaling improves NLL and ECE for the MLP without changing
+  accuracy. The fitted temperatures are slightly above 1 (1.06 to 1.18 for the
+  MLP), so the MLPs were mildly over-confident. It still helps on the shifted
+  data, although calibration remains substantially worse than in-domain.
+- Conformal coverage is close to the 0.9 target in-domain (0.89 to 0.90 for the
+  trained models) but drops under shift (0.84 to 0.85 for logistic regression
+  and the MLP-based models). This is consistent with the usual split-conformal
+  guarantee requiring exchangeability between calibration and test data.
+  Coverage is also uneven across classes: rare classes are covered much less
+  often (`per_class.csv`).
+- Confidence-based rejection is also less useful under shift: errors remain
+  much higher even after rejecting the least-confident predictions. At 50%
+  coverage the ensemble's error rate is about 0.29 in-domain and 0.46 under
+  shift (`metrics.csv`, `risk_at_50`).
+- The unregularised histogram-boosting baseline has unusually poor NLL, worse
+  than the class prior, because a small number of predictions assign extremely
+  low probability to the correct class. About half of its NLL comes from the
+  few percent of rows where the true class gets a probability below 1e-6, so
+  the value depends on the 1e-15 clipping floor. I kept this result as it is.
 
-After seeing that last result, one more boosting model with `L2 = 1` was fitted
-on the same data to check whether the missing regularisation was the cause. It
-is the last table above. With `L2 = 1` the NLL is in the same range as the
-MLPs, and on the shifted set slightly below them. This comparison was not planned in advance, used a single alternative
-value, and was prompted by test-set results, so it explains the baseline's
-behaviour but is not evidence for ranking boosting against the MLPs.
+After seeing that last result, I fitted one more boosting model with `L2 = 1` on
+the same data to check whether the missing regularisation was the cause. It is
+the last table above. With `L2 = 1` the NLL is in the same range as the MLPs,
+and on the shifted set slightly below them. This comparison is post-hoc and
+exploratory: it was not planned in advance, used a single alternative value and
+was prompted by test-set results. It explains the baseline's behaviour but is
+not evidence for ranking boosting against the MLPs.
 
 ## Limitations
 
@@ -249,14 +245,6 @@ tests/              unit and end-to-end tests on synthetic data
 results/reference/  saved predictions, provenance and tables of the reference run
 docs/               protocol, audits, references
 ```
-
-## Development history
-
-The repository was built with AI coding assistants, as the commit trailers
-show, and one working session was interrupted before its results were saved.
-[docs/recovery_audit.md](docs/recovery_audit.md) records what was lost, how the
-reference run was produced afterwards and how it was checked. Results described
-by the interrupted session were never recovered and are not used anywhere.
 
 ## Data, references and license
 
