@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, cite this repository and the original sources listed in docs/references.md."
+title: "Reliable ML under shift: calibration and uncertainty on Shifts Weather"
+type: software
+authors:
+  - family-names: Nikbakhsh Jorshari
+    given-names: Farzam
+version: 0.1.0
+license: MIT
+repository-code: "https://github.com/DrNFRZM/reliable-ml-under-shift"
+abstract: >-
+  A reproducible comparison of calibration, ensembles, selective prediction,
+  and split-conformal prediction on a sampled subset of Shifts Weather.
+  Saved predictions and fit metadata support independent metric recomputation.

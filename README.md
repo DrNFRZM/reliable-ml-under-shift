@@ -1,4 +1,4 @@
-# reliable-ml-under-shift
+# Reliable ML under shift
 
 This project studies calibration and predictive uncertainty under distribution
 shift using the Shifts Weather precipitation task.
@@ -11,6 +11,34 @@ split-conformal prediction sets.
 The main goal is reproducibility rather than proposing a new model. Saved
 predictions and experiment metadata are included so the reported metrics can be
 recomputed without retraining.
+
+## Main result
+
+<!-- headline:start -->
+NLL (lower is better), mean ± sample SD over five training seeds:
+
+| Predictor | In-domain | Shifted |
+| --- | ---: | ---: |
+| MLP | 1.042 ± 0.006 | 1.295 ± 0.015 |
+| MLP + temperature | 1.036 ± 0.005 | 1.271 ± 0.008 |
+| Ensemble of 3 MLPs | 1.022 ± 0.002 | 1.256 ± 0.010 |
+| Ensemble + temperature | 1.021 ± 0.002 | 1.249 ± 0.006 |
+<!-- headline:end -->
+
+Temperature scaling and the ensemble reduce NLL, but neither removes the effect
+of the shift. The ensemble with temperature scaling has about 0.89 conformal
+coverage in-domain and 0.85 under shift, below the 0.90 target. These are results
+on one sampled subset; the five seeds vary model training, not the data selection.
+The additional regularised boosting fit is a post-hoc diagnostic and is reported
+separately in [Results](#results).
+
+Inspect the [per-seed metrics](results/reference/metrics.csv),
+[paired differences](results/reference/paired_deltas.csv),
+[fit metadata](results/reference/training.json), and
+[run provenance](results/README.md). The
+[reference directory](results/reference) also contains the saved predictions.
+
+![Reliability diagrams for outer seed 0](results/reference/calibration.png)
 
 ## Question
 
@@ -136,8 +164,6 @@ true class is in the conformal set.
 | L2 = 1 (added afterwards) | `eval_out` | 0.463 | 1.232 | 0.085 | 0.854 |
 <!-- tables:end -->
 
-![Reliability diagrams for outer seed 0](results/reference/calibration.png)
-
 ![Risk-coverage curves averaged over outer seeds](results/reference/risk_coverage.png)
 
 ### What I found
@@ -201,6 +227,8 @@ not evidence for ranking boosting against the MLPs.
 ## Reproducing
 
 Python 3.11 or 3.12.
+The [reproduction check](docs/reproducibility.md) records the environment and
+which checks were completed.
 
 ```bash
 python -m pip install -r requirements-lock.txt -e .
