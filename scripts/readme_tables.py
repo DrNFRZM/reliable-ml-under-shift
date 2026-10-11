@@ -34,6 +34,17 @@ def cell(row, metric, digits=3):
     return f"{mean:.{digits}f} ± {row[f'{metric}_std']:.{digits}f}"
 
 
+def build_headline():
+    summary = pd.read_csv(RUN / "summary.csv").set_index(["method", "domain"])
+    out = ["NLL (lower is better), mean ± sample SD over five training seeds:", "",
+           "| Predictor | In-domain | Shifted |",
+           "| --- | ---: | ---: |"]
+    for method in ("mlp", "mlp_temperature", "ensemble", "ensemble_temperature"):
+        values = [cell(summary.loc[(method, domain)], "nll") for domain, _ in DOMAINS]
+        out.append(f"| {NAMES[method]} | {' | '.join(values)} |")
+    return "\n".join(out)
+
+
 def build():
     metadata = json.loads((RUN / "data_metadata.json").read_text(encoding="utf-8"))
     summary = pd.read_csv(RUN / "summary.csv").set_index(["method", "domain"])
@@ -81,6 +92,10 @@ def main():
     before, rest = text.split(START)
     _, after = rest.split(END)
     updated = f"{before}{START}\n{build()}\n{END}{after}"
+    headline_start, headline_end = "<!-- headline:start -->", "<!-- headline:end -->"
+    before, rest = updated.split(headline_start)
+    _, after = rest.split(headline_end)
+    updated = f"{before}{headline_start}\n{build_headline()}\n{headline_end}{after}"
     if "--check" in sys.argv:
         if updated != text:
             sys.exit("README.md tables differ from results/reference; run scripts/readme_tables.py")
