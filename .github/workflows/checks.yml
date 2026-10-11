@@ -1,0 +1,42 @@
+name: Research code checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install -r requirements-lock.txt -e .
+      - run: python -m unittest discover -s tests -v
+      - name: Synthetic end-to-end run (plumbing only, not a result)
+        run: |
+          shift-study smoke --config configs/smoke.json --output runs/ci-smoke
+          python scripts/verify_reference.py runs/ci-smoke/experiment
+      - name: Recompute the committed reference tables without the package's metric code
+        run: python scripts/verify_reference.py results/reference
+      - name: Re-evaluate the committed reference run with the package
+        run: |
+          python -m shiftstudy.cli evaluate --run results/reference
+          python scripts/tree_diagnostic.py evaluate --run results/reference/tree-diagnostic
+      - name: README tables are the ones generated from the reference run
+        run: python scripts/readme_tables.py --check
+      - name: Nothing tracked changed and nothing new appeared
+        # The two PNG figures are redrawn by the step above and are not
+        # byte-stable across platforms, so they are left out of this check.
+        run: |
+          changes="$(git status --porcelain --untracked-files=all -- . ':(exclude)results/reference/*.png')"
+          if [ -n "$changes" ]; then
+            echo "Unexpected changes after re-evaluation:"
+            echo "$changes"
+            git diff --stat
+            exit 1
+          fi

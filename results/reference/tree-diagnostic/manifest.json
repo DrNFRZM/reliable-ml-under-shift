@@ -1,0 +1,46 @@
+{
+  "pre_specified": false,
+  "purpose": "Fixed L2=1 diagnostic added after inspecting the primary run; not confirmatory ranking evidence",
+  "source": {
+    "git_commit": "a6228dd203d60a168f8e11275a69f50811a5c26a",
+    "git_dirty": true,
+    "package_files": {
+      "__init__.py": "e28f42fb55826e4920e3858311f0aa20404e030caf3629e0231d919cd936707f",
+      "calibration.py": "7b0de5e5254b08d1a69fd623d75ceadcc5a1e83d07f04aace0064efce674b309",
+      "cli.py": "e2d71afb71e2ca3a8b2a4e890b75045eaec61858df12d631a06561c4b76ba481",
+      "config.py": "9576d6c8476cd0d9daf11951a12d24d83afef8b811d59bbe0b1d5bdf5a33d53b",
+      "data.py": "f1c72a3de8d7eb7d756114992e477113001af47ee5ec2b6621a5d30829fa4693",
+      "experiment.py": "03ddb865fa5f79dd86d788422dc2eb1db8f34657491cf4048b6acd0173adeb85",
+      "metrics.py": "5449002f2f533770373c6b69bc44acc65bed9f759a9bf043b14eb006d4651477",
+      "models.py": "47cdd611d5ea93e9801f1d57a355a29fbf467328bb2d8a495c674c2fcd62cecb",
+      "report.py": "975e53692b27de99390dc9d3fc5d3ff412753b94399ccf19ea8b9d69ae51bfe4"
+    },
+    "package_sha256": "a59841cca859e83caaa01746094014271cd327053420edde4ec6b181eac1c6d9"
+  },
+  "script_sha256": "76f551c81e5157b9ba9fdded035524ced0a6f542fbfd3dd74cd704f582b6fced",
+  "parent_manifest_sha256": "ac6fc507a01362e3900ca2379a2b98869760a3600a9961c833105caae13c1cb6",
+  "prepared_data_sha256": "de1056b3738b9fe0e698ac9f7baffe0b4857056f1edd82fea43c189a72bc6527",
+  "alpha": 0.1,
+  "baseline_configuration": {
+    "logistic_c": 1.0,
+    "logistic_max_iter": 1000,
+    "boost_iterations": 100,
+    "boost_leaf_nodes": 15,
+    "boost_learning_rate": 0.1
+  },
+  "fits": {
+    "original_l2_0": {
+      "fit_seconds": 8.389888269999972,
+      "l2_regularization": 0.0,
+      "training_nll": 1.1050879647025182,
+      "validation_nll": 2.0993245257110114
+    },
+    "diagnostic_l2_1": {
+      "fit_seconds": 8.175378524999985,
+      "l2_regularization": 1.0,
+      "training_nll": 0.6844213016903898,
+      "validation_nll": 0.9991064190598158
+    }
+  },
+  "prediction_sha256": "0031a785f3af84a413fbb394faa174007a978b603016d660b3421cc273058470"
+}
