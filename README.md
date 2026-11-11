@@ -12,6 +12,9 @@ The main goal is reproducibility rather than proposing a new model. Saved
 predictions and experiment metadata are included so the reported metrics can be
 recomputed without retraining.
 
+This is an independent personal project. [Development and attribution](docs/development.md)
+separates the original implementation from the later AI-assisted maintenance work.
+
 ## Main result
 
 <!-- headline:start -->
@@ -277,9 +280,12 @@ docs/               protocol, audits, references
 ## Data, references and license
 
 The code is under the MIT license (`LICENSE`). The Shifts Weather data is
-licensed separately under CC BY-NC-SA 4.0 and is not redistributed here; the
-repository stores only row indices, observation keys, labels and model outputs
-for the selected rows. Citations are in [docs/references.md](docs/references.md):
+licensed separately under CC BY-NC-SA 4.0. Raw feature CSVs are not redistributed;
+the repository does retain selected source labels and observation keys alongside
+row indices and model outputs. The source-data terms and attribution still apply
+to those retained data; the code's MIT license does not relicense them. See the
+[data provenance notice](results/README.md#data-provenance-and-terms).
+Citations are in [docs/references.md](docs/references.md):
 
 - Malinin et al. (2021), *Shifts: A Dataset of Real Distributional Shift Across Multiple Large-Scale Tasks*.
 - Guo et al. (2017), *On Calibration of Modern Neural Networks*.

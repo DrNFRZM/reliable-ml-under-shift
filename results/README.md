@@ -65,3 +65,24 @@ committed `scripts/tree_diagnostic.py`.
 
 The raw dataset and the prepared feature arrays are not in Git (CC BY-NC-SA 4.0
 data, about 7.5 GB).
+
+## Data provenance and terms
+
+The Shifts Weather Prediction Dataset is credited to Malinin et al. (2021),
+*Shifts: A Dataset of Real Distributional Shift Across Multiple Large-Scale Tasks*.
+The [upstream dataset notice](https://github.com/Shifts-Project/shifts#weather-prediction)
+specifies [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+Its weather inputs originate from NOAA/NWS, NCAR/UCAR WRF, and the Meteorological
+Service of Canada; the upstream project documents the construction and sources.
+
+Although feature arrays are excluded, `selection.npz` retains a sampled subset of
+source labels and observation keys. Seed prediction files also retain labels.
+These are source-derived data, not newly authored software. The repository's MIT
+code license does not grant additional rights over them. Retain the source
+attribution and applicable source-data terms when reusing them.
+
+Transformations made by this study include random sampling of canonical CSV
+partitions, exact observation-key deduplication, subdivision of `dev_in`, class
+index encoding, and fitting predictions. `data_metadata.json` and `config.json`
+record those transformations and the source hashes. No original weather feature
+rows or new dataset license are introduced by this notice.
